@@ -1,0 +1,33 @@
+{
+  "name": "roma-browser",
+  "version": "1.0.0",
+  "description": "Roma Browser with custom Caesar search engine.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D3V-D/roma-browser.git"
+  },
+  "keywords": [
+    "browser",
+    "roma",
+    "search",
+    "engine",
+    "caesar",
+    "rome",
+    "electron",
+    "chromium"
+  ],
+  "author": "Alex Srivastava and Deven",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/D3V-D/roma-browser/issues"
+  },
+  "homepage": "https://github.com/D3V-D/roma-browser#readme",
+  "devDependencies": {
+    "electron": "^21.3.1"
+  }
+}
