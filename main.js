@@ -41,7 +41,7 @@ const createWindow = () => {
     win.setBrowserView(view)
     view.setBounds({ x: 0, y: top_bar_height, width: 800, height: 525 })
     view.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
-    //view.webContents.loadURL('https://duckduckgo.com')
+    view.webContents.loadURL('https://duckduckgo.com')
     win.maximize()
 
     win.on("resize", handleWindowResize);
