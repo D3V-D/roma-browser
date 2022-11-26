@@ -4,6 +4,22 @@ let win;
 let view;
 const top_bar_height = 75;
 
+//handle window resizing
+let lastHandle;
+function handleWindowResize() {
+  // the setTimeout is necessary because it runs after the event listener is handled
+  lastHandle = setTimeout(() => {
+    if (lastHandle != null) clearTimeout(lastHandle);
+    if (win)
+      view.setBounds({
+        x: 0,
+        y: top_bar_height,
+        width: win.getBounds().width,
+        height: win.getBounds().height - top_bar_height,
+      });
+  }, 0);
+}
+
 const createWindow = () => {
     win = new BrowserWindow({
       width: 800,
@@ -16,31 +32,17 @@ const createWindow = () => {
     })
   
     win.loadFile('index.html')
-    view = new BrowserView;
+    view = new BrowserView({
+      webPreferences: {
+        devTools: true,
+        contextIsolation: true
+      }
+    });
     win.setBrowserView(view)
     view.setBounds({ x: 0, y: top_bar_height, width: 800, height: 525 })
     view.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
-    view.webContents.loadURL('https://duckduckgo.com')
+    //view.webContents.loadURL('https://duckduckgo.com')
     win.maximize()
-
-
-    //handle window resizing
-    let lastHandle;
-    function handleWindowResize(e) {
-      e.preventDefault();
-
-      // the setTimeout is necessary because it runs after the event listener is handled
-      lastHandle = setTimeout(() => {
-        if (lastHandle != null) clearTimeout(lastHandle);
-        if (win)
-          view.setBounds({
-            x: 0,
-            y: top_bar_height,
-            width: win.getBounds().width,
-            height: win.getBounds().height - top_bar_height,
-          });
-      }, 0);
-    }
 
     win.on("resize", handleWindowResize);
 }
@@ -66,6 +68,43 @@ ipcMain.handle('ping', () => {
 })
 
 ipcMain.handle("openPage", async (event, url) => {
-  view.webContents.loadURL(url)
+  try { 
+    await view.webContents.loadURL(url) 
+    return true
+  } 
+  catch(err) { return false }
 })
 
+ipcMain.handle('loadingError', ()=> {
+  let errorView = new BrowserView
+  win.setBrowserView(errorView)
+  errorView.setBounds({ x: 0, y: top_bar_height, width: 800, height: 525 })
+  errorView.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
+  errorView.webContents.loadFile('html/error.html')
+
+  //handle window resizing (copied from main view)
+  let lastHandle;
+  function handleWindowResizeErr() {
+    // the setTimeout is necessary because it runs after the event listener is handled
+    lastHandle = setTimeout(() => {
+      if (lastHandle != null) clearTimeout(lastHandle);
+      if (errorView)
+        errorView.setBounds({
+          x: 0,
+          y: top_bar_height,
+          width: win.getBounds().width,
+          height: win.getBounds().height - top_bar_height,
+        });
+    }, 0);
+  }
+  
+  // handle once since it's not resized instantly
+  handleWindowResizeErr()
+
+  win.on("resize", handleWindowResizeErr);
+}) 
+
+ipcMain.handle('undoLoadingError', ()=> {
+  win.setBrowserView(view)
+  handleWindowResize()
+})

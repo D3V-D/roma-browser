@@ -51,5 +51,7 @@ contextBridge.exposeInMainWorld('example', {
 // another context bridge :)
 contextBridge.exposeInMainWorld('webpage', {
   open: (url) => ipcRenderer.invoke("openPage", url),
-  validate: (url) => isURL.test(url)
+  validate: (url) => isURL.test(url),
+  loadingError: () => ipcRenderer.invoke('loadingError'),
+  undoLoadingError: () => ipcRenderer.invoke('undoLoadingError')
 })
