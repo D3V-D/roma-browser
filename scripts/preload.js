@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+//connects index.js to main.js
 contextBridge.exposeInMainWorld('example', {
   something: () => "using example.something() in index.js will return this.",
   else: () => "while using example.else() in index.js will return this string instead",
