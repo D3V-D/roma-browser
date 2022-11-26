@@ -14,3 +14,4 @@ Goals:
 - Better landing page
 - Tab system
 - Domain
+- On full screen the browserview should take up 100% of the screen. 
