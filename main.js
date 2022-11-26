@@ -1,9 +1,8 @@
-const { clear } = require('console');
 const { app, ipcMain, BrowserView, BrowserWindow } = require('electron')
 const path = require('path');
 let win;
 let view;
-const top_bar_height = 50;
+const top_bar_height = 75;
 
 const createWindow = () => {
     win = new BrowserWindow({
@@ -19,7 +18,7 @@ const createWindow = () => {
     win.loadFile('index.html')
     view = new BrowserView;
     win.setBrowserView(view)
-    view.setBounds({ x: 0, y: top_bar_height, width: 800, height: 550 })
+    view.setBounds({ x: 0, y: top_bar_height, width: 800, height: 525 })
     view.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
     view.webContents.loadURL('https://duckduckgo.com')
     win.maximize()
@@ -64,5 +63,9 @@ app.on('window-all-closed', () => {
 ipcMain.handle('ping', () => {
   // do something (in this case prints pong to the terminal)
   console.log('pong')
+})
+
+ipcMain.handle("openPage", async (event, url) => {
+  view.webContents.loadURL(url)
 })
 

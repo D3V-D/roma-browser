@@ -1,0 +1,17 @@
+* {
+    margin: 0;
+    box-sizing: border-box;
+}
+
+#tabs {
+    height: 25px;
+}
+
+#searchBar {
+    height: 30px;
+    box-shadow: black 1px 2px 2px;
+    width: 90vw;
+    margin-left: 5vw;
+    margin-right: 5vw;
+    margin-bottom: 0;
+}
