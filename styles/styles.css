@@ -15,3 +15,9 @@
     margin-right: 5vw;
     margin-bottom: 0;
 }
+
+#top-bar {
+    border-bottom: 2px solid grey;
+    margin-bottom: 0;
+    padding-bottom: 19px;
+}
