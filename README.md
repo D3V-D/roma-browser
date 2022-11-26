@@ -9,3 +9,8 @@ Goals:
 - Add features.
 - ???
 - Profit! <- *A lot!*
+- Home Sceen Image
+- Host Search Engine
+- Better landing page
+- Tab system
+- Domain
