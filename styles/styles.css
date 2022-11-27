@@ -86,7 +86,7 @@ html, body {
 }
 
 .unusable {
-    filter: invert(70%);
+    filter: invert(70%); /** turns black images into grey **/
 }
 
 .unusable:hover {
