@@ -1,10 +1,9 @@
-const { app, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
+const { app, dialog, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
 const path = require('path');
 let win;
 let view;
 const top_bar_height = 100;
 let currView;
-let errorView;
 let currURL;
 
 //handle window resizing
@@ -45,8 +44,8 @@ const createWindow = () => {
     view.setBounds({ x: 0, y: top_bar_height + 100, width: 800, height: 600 - top_bar_height })
     view.setAutoResize({ width: false, height: true, vertical: false, horizontal: true})
     view.webContents.loadURL('https://duckduckgo.com')
-    currURL = 'https://duckduckgo.com'
     win.setBrowserView(view)
+    currURL = 'https://duckduckgo.com'
     currView = view;
     win.maximize()
     
@@ -55,50 +54,76 @@ const createWindow = () => {
 
     // update url on navigation
     view.webContents.on('did-navigate', (event, url)=> {
-      currURL = url
-      win.webContents.send('urlUpdated', currURL)
+      if(!url.startsWith("file:")) {
+        currURL = url
+        win.webContents.send('urlUpdated', currURL)
+      }
+
+       // grey out button if not able to go back/forward
+      if (!view.webContents.canGoBack()) {
+        win.webContents.send('cannotGoBack')
+      } else {
+        win.webContents.send('canGoBack')
+      }
+
+      if (!view.webContents.canGoForward()) {
+        win.webContents.send('cannotGoForward')
+      } else {
+        win.webContents.send('canGoForward')
+      }
+
+      //animate loading button when loading
+      if(view.webContents.isLoading()) {
+        win.webContents.send('loading...')
+      }
     })
-        
+    
+    view.webContents.on('did-finish-load', (e) => {
+      win.webContents.send('done-loading')
+    })
+
+    //handle certificate error
+    view.webContents.on('certificate-error', (e, url, err, cert) => {
+      currURL = url
+      view.webContents.loadFile('html/insecure.html')
+    })
+
     //handle failed url
     view.webContents.on('did-fail-load', (e, eCode, eDesc, validatedURL) =>{
-      currURL = validatedURL
-      errorView = new BrowserView
-      errorView.setBounds({ x: 0, y: top_bar_height, width: 800, height: 500 })
-      errorView.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
-      errorView.webContents.loadFile('html/error.html')
-      win.setBrowserView(errorView)
-      currView = errorView;
-      
-
-      //handle window resizing (copied from main view)
-      let lastHandle;
-      function handleWindowResizeErr() {
-        // the setTimeout is necessary because it runs after the event listener is handled
-        lastHandle = setTimeout(() => {
-          if (lastHandle != null) clearTimeout(lastHandle);
-            if (errorView) 
-              errorView.setBounds({
-                x: 0,
-                y: top_bar_height,
-                width: win.getBounds().width,
-                height: win.getBounds().height - top_bar_height,
-              });
-          }, 0);
+      if (eCode != -3) {// -3 means user action
+        currURL = validatedURL
+        view.webContents.loadFile('html/error.html')
       }
-          
-          // handle once since it's not resized instantly
-          handleWindowResizeErr()
-          
-          win.on("resize", handleWindowResizeErr)
     })
 
-    //remove error when started to load new page
-    view.webContents.on('did-start-loading', (e) => {
-      if (currView == errorView) { 
-        win.setBrowserView(view)
-        currURL = view.webContents.getURL()
-        currView = view;
-        handleWindowResize()
+    //handle unresponsiveness
+    view.webContents.on('unresponsive', async () => {
+      const { response } = await dialog.showMessageBox({
+        message: 'This site has become unresponsive',
+        title: 'Do you want to try forcefully reloading?',
+        buttons: ['OK', 'Wait'],
+        cancelId: 1
+      })
+      if (response === 0) {
+        contents.forcefullyCrashRenderer()
+        contents.reload()
+      }
+    })
+    
+
+    //handle potentially unsaved work
+    view.webContents.on('will-prevent-unload', (event) => {
+      const choice = dialog.showMessageBoxSync(win, {
+        type: 'question',
+        buttons: ['Leave', 'Stay'],
+        title: 'Do you want to leave this site?',
+        message: 'Changes you made may not be saved.',
+        defaultId: 0,
+        cancelId: 1
+      })
+      const leave = (choice === 0)
+      if (leave) {
+        event.preventDefault()
       }
     })
 }
@@ -132,36 +157,16 @@ ipcMain.handle("openPage", (event, url) => {
 //handle backwards, forwards, and refresh
 ipcMain.handle('goBack', ()=> {
   if (view.webContents.canGoBack()) {
-    if (currView == errorView) { // if error page, then go back to normal view
-      view.webContents.goBack()
-      win.setBrowserView(view)
-      currView = view;
-      handleWindowResize()
-    } else { //normal view
-      view.webContents.goBack()
-    }
+    view.webContents.goBack()
   }
 })
 
 ipcMain.handle('goForward', ()=> {
   if (view.webContents.canGoForward()) {
-    if (currView == errorView) { // if error page, then go back to normal view
-      view.webContents.goForward()
-      win.setBrowserView(view)
-      currView = view;
-      handleWindowResize()
-    } else { //normal view
-      view.webContents.goForward()
-    }
+    view.webContents.goForward()
   }
 })
 
 ipcMain.handle('refresh', ()=> {
-  if (currView == view) {
-    view.webContents.reload()
-    console.log('reloaded')
-  } else if (currView == errorView) {
-    errorView.webContents.reload()
-    console.log('reloaded')
-  }
+  view.webContents.loadURL(currURL)
 })

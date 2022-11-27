@@ -11,12 +11,15 @@
   </head>
   <body>
     <nav id="top-bar">
-      <section id="tabs"> Tabs here </section>
+      <section id="tabs"> 
+        <div id="1" class="tab active-tab">Tab 1 <button class="close-tab" id="c1">&#x2715;</button></div>
+        <div id="add-tab"><img src="img/plus.png" width="16" height="16"></img></div>
+      </section>
       <section id="controls">
         <div id="control-buttons">
-          <button id="back"><</button>
-          <button id="forwards">></button>
-          <button id="refresh">R</button>
+          <button class="control-buttons" id="back">&#129044;</button>
+          <button class="control-buttons" id="forwards">&#129046;</button>
+          <button class="control-buttons" id="refresh"><img src="img/reload.png" width="16" height="16"></img></button>
         </div>
 
         <input spellcheck="false" type="text" id="searchBar" name="address-bar"></input>

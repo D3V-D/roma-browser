@@ -48,7 +48,7 @@ contextBridge.exposeInMainWorld('example', {
   ping: () => /** using this will send a message to main, to which main will respond. lets index.js talk to main.js */ ipcRenderer.invoke('ping')
 })
 
-// another context bridge :)
+// handle webpage functions (index -> main)
 contextBridge.exposeInMainWorld('webpage', {
   open: (url) => ipcRenderer.invoke("openPage", url),
   validate: (url) => isURL.test(url),
@@ -57,6 +57,32 @@ contextBridge.exposeInMainWorld('webpage', {
   refresh: () => ipcRenderer.invoke('refresh')
 })
 
+//handle messages from main 
 ipcRenderer.on('urlUpdated', (event, url) => {
   document.getElementById("searchBar").value = url
 })
+
+ipcRenderer.on('cannotGoBack', (event) => {
+  document.getElementById('back').classList.add('unusable')
+})
+
+ipcRenderer.on('canGoBack', (event) => {
+  document.getElementById('back').classList.remove('unusable')
+})
+
+ipcRenderer.on('cannotGoForward', (event) => {
+  document.getElementById('forwards').classList.add('unusable')
+})
+
+ipcRenderer.on('canGoForward', (event) => {
+  document.getElementById('forwards').classList.remove('unusable')
+})
+
+ipcRenderer.on('loading...', (event) => {
+  document.getElementById('refresh').innerHTML = '<img src="img/loading.gif" width="16" height="16"></img>'
+})
+
+ipcRenderer.on('done-loading', (event) => {
+  document.getElementById('refresh').innerHTML = '<img src="img/reload.png" width="16" height="16"></img>'
+})
+

@@ -10,6 +10,50 @@
 
 #tabs {
     height: 50px;
+    display: flex;
+    flex-direction: row;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    align-items: center;
+    overflow-x: auto;
+}
+
+.tab {
+    padding: 10px;
+    border-radius: 4px;
+    user-select: none;
+}
+
+.active-tab {
+    background: rgb(218, 215, 215);
+    border: white 1px;
+}
+
+.close-tab {
+    background: none;
+    outline: none;
+    border: none;
+    border-radius: 2px;
+    aspect-ratio: 1/1;
+}
+
+.close-tab:hover {
+    background: rgb(235, 235, 235);
+}
+
+#add-tab {
+    background: none;
+    border-radius: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 7px;
+    font-size: 20px;
+    margin-left: 5px;
+    aspect-ratio: 1/1;
+}
+
+#add-tab:hover {
+    background:rgb(235, 235, 235);
 }
 
 #controls {
@@ -22,6 +66,27 @@
     gap: 10px;
     align-items: center;
     height: 50px;
+}
+
+.control-buttons {
+    background: none;
+    outline: none;
+    border: none;
+    border-radius: 2px;
+    aspect-ratio: 1/1;
+    font-size: 20px;
+}
+
+.control-buttons:hover {
+    background:rgba(243, 243, 243, 0.6);
+}
+
+.unusable {
+    color: grey;
+}
+
+.unusable:hover {
+    background: none;
 }
 
 #searchBar {
@@ -46,5 +111,4 @@
     max-width: 71vw;
     box-shadow: rgba(0,0,0,0.5) 2px 2px 1px;
     border-radius: 4px;
-
 }
