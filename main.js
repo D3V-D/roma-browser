@@ -42,8 +42,8 @@ const createWindow = () => {
       }
     });
     
-    view.setBounds({ x: 0, y: top_bar_height + 100, width: 800, height: 20 })
-    view.setAutoResize({ width: false, height: true, vertical: true, horizontal: true})
+    view.setBounds({ x: 0, y: top_bar_height + 100, width: 800, height: 600 - top_bar_height })
+    view.setAutoResize({ width: false, height: true, vertical: false, horizontal: true})
     view.webContents.loadURL('https://duckduckgo.com')
     currURL = 'https://duckduckgo.com'
     win.setBrowserView(view)
