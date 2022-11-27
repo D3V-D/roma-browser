@@ -52,6 +52,11 @@ contextBridge.exposeInMainWorld('example', {
 contextBridge.exposeInMainWorld('webpage', {
   open: (url) => ipcRenderer.invoke("openPage", url),
   validate: (url) => isURL.test(url),
-  loadingError: () => ipcRenderer.invoke('loadingError'),
-  undoLoadingError: () => ipcRenderer.invoke('undoLoadingError')
+  goBack: () => ipcRenderer.invoke('goBack'),
+  goForward: () => ipcRenderer.invoke('goForward'),
+  refresh: () => ipcRenderer.invoke('refresh')
+})
+
+ipcRenderer.on('urlUpdated', (event, url) => {
+  document.getElementById("searchBar").value = url
 })

@@ -1,8 +1,11 @@
-const { app, ipcMain, BrowserView, BrowserWindow } = require('electron')
+const { app, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
 const path = require('path');
 let win;
 let view;
-const top_bar_height = 75;
+const top_bar_height = 100;
+let currView;
+let errorView;
+let currURL;
 
 //handle window resizing
 let lastHandle;
@@ -24,7 +27,7 @@ const createWindow = () => {
     win = new BrowserWindow({
       width: 800,
       height: 600,
-      minWidth: 100,
+      minWidth: 400,
       minHeight: top_bar_height,
       webPreferences: {
         preload: path.join(__dirname, 'scripts/preload.js')
@@ -38,13 +41,66 @@ const createWindow = () => {
         contextIsolation: true
       }
     });
-    win.setBrowserView(view)
-    view.setBounds({ x: 0, y: top_bar_height, width: 800, height: 525 })
-    view.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
+    
+    view.setBounds({ x: 0, y: top_bar_height + 100, width: 800, height: 20 })
+    view.setAutoResize({ width: false, height: true, vertical: true, horizontal: true})
     view.webContents.loadURL('https://duckduckgo.com')
+    currURL = 'https://duckduckgo.com'
+    win.setBrowserView(view)
+    currView = view;
     win.maximize()
+    
 
     win.on("resize", handleWindowResize);
+
+    // update url on navigation
+    view.webContents.on('did-navigate', (event, url)=> {
+      currURL = url
+      win.webContents.send('urlUpdated', currURL)
+    })
+        
+    //handle failed url
+    view.webContents.on('did-fail-load', (e, eCode, eDesc, validatedURL) =>{
+      currURL = validatedURL
+      errorView = new BrowserView
+      errorView.setBounds({ x: 0, y: top_bar_height, width: 800, height: 500 })
+      errorView.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
+      errorView.webContents.loadFile('html/error.html')
+      win.setBrowserView(errorView)
+      currView = errorView;
+      
+
+      //handle window resizing (copied from main view)
+      let lastHandle;
+      function handleWindowResizeErr() {
+        // the setTimeout is necessary because it runs after the event listener is handled
+        lastHandle = setTimeout(() => {
+          if (lastHandle != null) clearTimeout(lastHandle);
+            if (errorView) 
+              errorView.setBounds({
+                x: 0,
+                y: top_bar_height,
+                width: win.getBounds().width,
+                height: win.getBounds().height - top_bar_height,
+              });
+          }, 0);
+      }
+          
+          // handle once since it's not resized instantly
+          handleWindowResizeErr()
+          
+          win.on("resize", handleWindowResizeErr)
+    })
+
+    //remove error when started to load new page
+    view.webContents.on('did-start-loading', (e) => {
+      if (currView == errorView) { 
+        win.setBrowserView(view)
+        currURL = view.webContents.getURL()
+        currView = view;
+        handleWindowResize()
+      }
+    })
 }
 
 app.whenReady().then(() => {
@@ -67,44 +123,45 @@ ipcMain.handle('ping', () => {
   console.log('pong')
 })
 
-ipcMain.handle("openPage", async (event, url) => {
-  try { 
-    await view.webContents.loadURL(url) 
-    return true
-  } 
-  catch(err) { return false }
+ipcMain.handle("openPage", (event, url) => {
+  view.webContents.loadURL(url)
+  currURL = view.webContents.getURL()
 })
 
-ipcMain.handle('loadingError', ()=> {
-  let errorView = new BrowserView
-  win.setBrowserView(errorView)
-  errorView.setBounds({ x: 0, y: top_bar_height, width: 800, height: 525 })
-  errorView.setAutoResize({ width: false, height: true, vetrical: true, horizontal: true})
-  errorView.webContents.loadFile('html/error.html')
 
-  //handle window resizing (copied from main view)
-  let lastHandle;
-  function handleWindowResizeErr() {
-    // the setTimeout is necessary because it runs after the event listener is handled
-    lastHandle = setTimeout(() => {
-      if (lastHandle != null) clearTimeout(lastHandle);
-      if (errorView)
-        errorView.setBounds({
-          x: 0,
-          y: top_bar_height,
-          width: win.getBounds().width,
-          height: win.getBounds().height - top_bar_height,
-        });
-    }, 0);
+//handle backwards, forwards, and refresh
+ipcMain.handle('goBack', ()=> {
+  if (view.webContents.canGoBack()) {
+    if (currView == errorView) { // if error page, then go back to normal view
+      view.webContents.goBack()
+      win.setBrowserView(view)
+      currView = view;
+      handleWindowResize()
+    } else { //normal view
+      view.webContents.goBack()
+    }
   }
-  
-  // handle once since it's not resized instantly
-  handleWindowResizeErr()
+})
 
-  win.on("resize", handleWindowResizeErr);
-}) 
+ipcMain.handle('goForward', ()=> {
+  if (view.webContents.canGoForward()) {
+    if (currView == errorView) { // if error page, then go back to normal view
+      view.webContents.goForward()
+      win.setBrowserView(view)
+      currView = view;
+      handleWindowResize()
+    } else { //normal view
+      view.webContents.goForward()
+    }
+  }
+})
 
-ipcMain.handle('undoLoadingError', ()=> {
-  win.setBrowserView(view)
-  handleWindowResize()
+ipcMain.handle('refresh', ()=> {
+  if (currView == view) {
+    view.webContents.reload()
+    console.log('reloaded')
+  } else if (currView == errorView) {
+    errorView.webContents.reload()
+    console.log('reloaded')
+  }
 })
