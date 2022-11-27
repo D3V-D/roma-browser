@@ -117,3 +117,7 @@ html, body {
     box-shadow: rgba(0,0,0,0.5) 2px 2px 1px;
     border-radius: 4px;
 }
+
+#settings {
+    font-size: 34px;
+}
