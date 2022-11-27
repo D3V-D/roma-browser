@@ -86,7 +86,7 @@ html, body {
 }
 
 .unusable {
-    color: grey;
+    filter: invert(70%);
 }
 
 .unusable:hover {
