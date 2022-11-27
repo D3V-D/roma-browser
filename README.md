@@ -16,4 +16,4 @@ Goals:
 - On full screen the browserview should take up 100% of the screen. *
 - Add loading indication. 
 - Optimize for speed (later). 
-- Improve UI 
+- Add Roma theme to UI.
