@@ -9,7 +9,7 @@ Goals:
 - Add features.
 - Profit! <- *A lot!*
 - Home Sceen Image * 
-- Host Search Engine 
+- Host Search Engine (add link to search engine github) 
 - Better landing page 
 - Domain 
 - On full screen the browserview should take up 100% of the screen. *
