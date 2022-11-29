@@ -43,6 +43,21 @@ const isURL = new RegExp(
   "$", "i"
 );
 
+// function for reordering tab indexes
+function reorderTabs() {
+    // to re-order indexes
+    let tab_list = Array.from(document.getElementById('tabs').children)
+    //delete all children
+    document.getElementById('tabs').replaceChildren()
+    //re-order and re-id children
+    for (let i = 0; i < tab_list.length; i++ ) {
+      tab_list[i].id = i
+      let newChild = tab_list[i]
+      document.getElementById('tabs').appendChild(newChild)
+    }
+}
+
+
 //connects index.js to main.js
 contextBridge.exposeInMainWorld('example', {
   ping: () => /** using this will send a message to main, to which main will respond. lets index.js talk to main.js */ ipcRenderer.invoke('ping')
@@ -54,7 +69,10 @@ contextBridge.exposeInMainWorld('webpage', {
   validate: (url) => isURL.test(url),
   goBack: () => ipcRenderer.invoke('goBack'),
   goForward: () => ipcRenderer.invoke('goForward'),
-  refresh: () => ipcRenderer.invoke('refresh')
+  refresh: () => ipcRenderer.invoke('refresh'),
+  addTab: () => ipcRenderer.invoke('addTab'),
+  switchTab: (id) => ipcRenderer.invoke('switchTab', id),
+  removeTab: (id) => ipcRenderer.invoke('removeTab', id)
 })
 
 //handle messages from main 
@@ -86,3 +104,16 @@ ipcRenderer.on('done-loading', (event) => {
   document.getElementById('refresh').innerHTML = '<img src="img/reload.png" width="16" height="16"></img>'
 })
 
+ipcRenderer.on('title-updated', (event, title, currTab) => {
+  document.getElementById('' + currTab + '').innerHTML = '<div class="title" onclick="webpage.switchTab(this.parentNode.id)">' + title + '</div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button>'
+})
+
+ipcRenderer.on('new-tab', (event, tabId) => {
+  document.getElementById('tabs').innerHTML += '<div id="' + tabId + '" class="tab active-tab"><div class="title" onclick="webpage.switchTab(this.parentNode.id)">New Tab</div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button></div>  '
+})
+
+ipcRenderer.on('tab-destroyed', (event, id) => {
+  //remove destroyed tab
+  document.getElementById(id).parentNode.removeChild(document.getElementById(id))
+  reorderTabs()
+})

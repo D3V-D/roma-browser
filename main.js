@@ -1,10 +1,115 @@
-const { app, dialog, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
+const { session, app, dialog, ipcMain, BrowserView, BrowserWindow, webContents, globalShortcut } = require('electron')
 const path = require('path');
 let win;
 let view;
+let currViewIndex;
+let numTabs = 0;
 const top_bar_height = 100;
-let currView;
+let browserViews = [];
 let currURL;
+let homepageURL = "https://duckduckgo.com/"
+
+// function to create new tabs
+function addAndSwitchToTab() {
+  currViewIndex = browserViews.length
+  win.webContents.send("new-tab", currViewIndex)
+  browserViews[currViewIndex] = new BrowserView()
+  view = browserViews[currViewIndex]
+  view.webContents.loadURL(homepageURL)
+  win.webContents.send('urlUpdated', '')
+  win.setBrowserView(view)
+  numTabs ++;
+  handleWindowResize()
+
+      // update url on navigation
+      view.webContents.on('did-navigate', (event, url)=> {
+        if(!url.startsWith("file:") && !(url == homepageURL)) {
+          currURL = url
+          win.webContents.send('urlUpdated', currURL)
+        }
+
+        if (url == homepageURL) {
+          currURL = homepageURL
+          win.webContents.send('urlUpdated', '')
+        }
+  
+         // grey out button if not able to go back/forward
+        if (!view.webContents.canGoBack()) {
+          win.webContents.send('cannotGoBack')
+        } else {
+          win.webContents.send('canGoBack')
+        }
+  
+        if (!view.webContents.canGoForward()) {
+          win.webContents.send('cannotGoForward')
+        } else {
+          win.webContents.send('canGoForward')
+        }
+  
+        //animate loading button when loading
+        if(view.webContents.isLoading()) {
+          win.webContents.send('loading...')
+        }
+        
+      })
+      
+      view.webContents.on('did-finish-load', (e) => {
+        win.webContents.send('done-loading')
+      })
+
+      //whenever title of page is updated, change tab title
+      view.webContents.on('page-title-updated', (e)=> {
+        if (currURL != "https://duckduckgo.com/") {
+            let title = view.webContents.getTitle()
+            win.webContents.send("title-updated", title, currViewIndex)
+          }
+      })
+  
+      //handle certificate error
+      view.webContents.on('certificate-error', (e, url, err, cert) => {
+        currURL = url
+        view.webContents.loadFile('html/insecure.html')
+      })
+  
+      //handle failed url
+      view.webContents.on('did-fail-load', (e, eCode, eDesc, validatedURL) =>{
+        if (eCode != -3) {// -3 means user action
+          currURL = validatedURL
+          view.webContents.loadFile('html/error.html')
+        }
+      })
+  
+      //handle unresponsiveness
+      view.webContents.on('unresponsive', async () => {
+        const { response } = await dialog.showMessageBox({
+          message: 'This site has become unresponsive',
+          title: 'Do you want to try forcefully reloading?',
+          buttons: ['OK', 'Wait'],
+          cancelId: 1
+        })
+        if (response === 0) {
+          contents.forcefullyCrashRenderer()
+          contents.reload()
+        }
+      })
+      
+  
+      //handle potentially unsaved work
+      view.webContents.on('will-prevent-unload', (event) => {
+        const choice = dialog.showMessageBoxSync(win, {
+          type: 'question',
+          buttons: ['Leave', 'Stay'],
+          title: 'Do you want to leave this site?',
+          message: 'Changes you made may not be saved.',
+          defaultId: 0,
+          cancelId: 1
+        })
+        const leave = (choice === 0)
+        if (leave) {
+          event.preventDefault()
+        }
+      })
+}
 
 //handle window resizing
 let lastHandle;
@@ -41,95 +146,23 @@ const createWindow = () => {
       }
     });
     
-    view.setBounds({ x: 0, y: top_bar_height + 100, width: 800, height: 600 - top_bar_height })
-    view.setAutoResize({ width: false, height: true, vertical: true, horizontal: true})
-    view.webContents.loadURL('https://duckduckgo.com')
-    win.setBrowserView(view)
-    currURL = view.webContents.getURL()
-    currView = view;
+    addAndSwitchToTab()
     win.maximize()
     
 
     win.on("resize", handleWindowResize);
-
-    // update url on navigation
-    view.webContents.on('did-navigate', (event, url)=> {
-      if(!url.startsWith("file:")) {
-        currURL = url
-        win.webContents.send('urlUpdated', currURL)
-      }
-
-       // grey out button if not able to go back/forward
-      if (!view.webContents.canGoBack()) {
-        win.webContents.send('cannotGoBack')
-      } else {
-        win.webContents.send('canGoBack')
-      }
-
-      if (!view.webContents.canGoForward()) {
-        win.webContents.send('cannotGoForward')
-      } else {
-        win.webContents.send('canGoForward')
-      }
-
-      //animate loading button when loading
-      if(view.webContents.isLoading()) {
-        win.webContents.send('loading...')
-      }
-    })
-    
-    view.webContents.on('did-finish-load', (e) => {
-      win.webContents.send('done-loading')
-    })
-
-    //handle certificate error
-    view.webContents.on('certificate-error', (e, url, err, cert) => {
-      currURL = url
-      view.webContents.loadFile('html/insecure.html')
-    })
-
-    //handle failed url
-    view.webContents.on('did-fail-load', (e, eCode, eDesc, validatedURL) =>{
-      if (eCode != -3) {// -3 means user action
-        currURL = validatedURL
-        view.webContents.loadFile('html/error.html')
-      }
-    })
-
-    //handle unresponsiveness
-    view.webContents.on('unresponsive', async () => {
-      const { response } = await dialog.showMessageBox({
-        message: 'This site has become unresponsive',
-        title: 'Do you want to try forcefully reloading?',
-        buttons: ['OK', 'Wait'],
-        cancelId: 1
-      })
-      if (response === 0) {
-        contents.forcefullyCrashRenderer()
-        contents.reload()
-      }
-    })
-    
-
-    //handle potentially unsaved work
-    view.webContents.on('will-prevent-unload', (event) => {
-      const choice = dialog.showMessageBoxSync(win, {
-        type: 'question',
-        buttons: ['Leave', 'Stay'],
-        title: 'Do you want to leave this site?',
-        message: 'Changes you made may not be saved.',
-        defaultId: 0,
-        cancelId: 1
-      })
-      const leave = (choice === 0)
-      if (leave) {
-        event.preventDefault()
-      }
-    })
 }
 
 app.whenReady().then(() => {
     createWindow()
+
+    globalShortcut.register('CommandOrControl+Shift+I', ()=> {
+      view.webContents.openDevTools("right")
+    })
+
+    globalShortcut.register('CommandOrControl+Option+I', ()=> {
+      view.webContents.openDevTools("right")
+    })
 
     // MacOS open window if none are open.
     app.on('activate', () => {
@@ -168,5 +201,65 @@ ipcMain.handle('goForward', ()=> {
 })
 
 ipcMain.handle('refresh', ()=> {
-  view.webContents.loadURL(currURL)
+  if (view.webContents.isLoading) view.webContents.stop()
+  else view.webContents.loadURL(currURL)
 })
+
+ipcMain.handle('addTab', ()=> {
+  addAndSwitchToTab()
+})
+
+ipcMain.handle('removeTab', (e, id)=> {
+  // id == index to delete
+  if (id == currViewIndex && numTabs > 1) {
+    //if deleting current tab and it's not the only tab
+    
+    //check if current tab is first tab. if so, switch to second tab. if not, switch to tab before this one.
+    if (currViewIndex == 0) {
+      view = browserViews[1]
+      currViewIndex += 1
+    } else {
+      view = browserViews[currViewIndex-1]      
+      currViewIndex -= 1
+    }
+
+    win.setBrowserView(view)
+    browserViews[id].destroy
+    win.webContents.send('tab-destroyed', id)
+    win.webContents.send('urlUpdated', view.webContents.getURL())
+    browserViews.splice(id, 1)
+    numTabs -= 1;
+    handleWindowResize()
+  } else if (numTabs == 1) {
+    // if deleting last tab
+    win.close()
+  } else if (id < currViewIndex) {
+    // if deleting tab before the one we are on
+    browserViews[id].destroy
+    win.webContents.send('tab-destroyed', id)
+    browserViews.splice(id, 1)
+    currViewIndex -= 1;
+    numTabs -= 1;
+  } else if (id > currViewIndex) {
+    // if deleting a tab after the current tab
+    browserViews[id].destroy
+    win.webContents.send('tab-destroyed', id)
+    browserViews.splice(id, 1)
+    numTabs -= 1;
+  }
+})
+
+ipcMain.handle('switchTab', (e, id) => {
+  currViewIndex = id
+  view = browserViews[id]
+  win.setBrowserView(view)
+  currURL = view.webContents.getURL()
+  if (currURL != homepageURL) {
+    win.webContents.send("urlUpdated", currURL)
+  } else {
+    win.webContents.send("urlUpdated", '')
+  }
+  handleWindowResize()
+})
+
+
