@@ -44,16 +44,14 @@ const isURL = new RegExp(
 );
 
 // function for reordering tab indexes
-function reorderTabs() {
+function reorderTabs(idRemoved) {
     // to re-order indexes
     let tab_list = Array.from(document.getElementById('tabs').children)
     //delete all children
-    document.getElementById('tabs').replaceChildren()
+    //document.getElementById('tabs').replaceChildren()
     //re-order and re-id children
     for (let i = 0; i < tab_list.length; i++ ) {
-      tab_list[i].id = i
-      let newChild = tab_list[i]
-      document.getElementById('tabs').appendChild(newChild)
+      document.getElementById('tabs').children[i].id = i
     }
 }
 
@@ -77,7 +75,11 @@ contextBridge.exposeInMainWorld('webpage', {
 
 //handle messages from main 
 ipcRenderer.on('urlUpdated', (event, url) => {
-  document.getElementById("searchBar").value = url
+  if (url != 'https://duckduckgo.com/') {
+    document.getElementById("searchBar").value = url
+  } else {
+    document.getElementById("searchBar").value = ""
+  }
 })
 
 ipcRenderer.on('cannotGoBack', (event) => {
@@ -115,5 +117,44 @@ ipcRenderer.on('new-tab', (event, tabId) => {
 ipcRenderer.on('tab-destroyed', (event, id) => {
   //remove destroyed tab
   document.getElementById(id).parentNode.removeChild(document.getElementById(id))
-  reorderTabs()
+  reorderTabs(id)
+
+  // check if scroll arrows needed or not
+  let tabs = document.getElementById("tabs")
+  let tabBar = document.getElementById("tab-bar")   
+  let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
+  let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
+  tabsW = parseInt(tabsW)
+  maxW = parseInt(maxW) - (window.innerWidth * 0.1)
+
+  if (tabsW <= maxW) {
+    document.getElementById('scroll-button-left').classList.add('hide')
+    document.getElementById('scroll-button-right').classList.add('hide')
+  }
+})
+
+ipcRenderer.on('check-scroll-arrows', (e) => {
+  // basically should fire every window size change
+
+  // check if scroll arrows needed or not
+  let tabs = document.getElementById("tabs")
+  let tabBar = document.getElementById("tab-bar")   
+  let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
+  let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
+  tabsW = parseInt(tabsW)
+  maxW = parseInt(maxW) - (window.innerWidth * 0.1)
+
+
+  if (tabsW <= maxW) {
+    document.getElementById('scroll-button-left').classList.add('hide')
+    document.getElementById('scroll-button-right').classList.add('hide')
+  } else {
+    //now check for if we should add them
+    maxW = parseInt(maxW) - (window.innerWidth * 0.2) - 5
+    if (tabsW >= maxW) {
+      document.getElementById('scroll-button-left').classList.remove('hide')
+      document.getElementById('scroll-button-right').classList.remove('hide')
+    }
+  }
+  
 })

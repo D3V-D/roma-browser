@@ -15,11 +15,11 @@ html, body {
 
 #tab-bar {
     height: 50px;
+    width: calc(100vw - 55px);
     display: flex;
     flex-direction: row;
-    padding-left: 1vw;
-    padding-right: 1vw;
     align-items: center;
+    overflow: clip;
 }
 
 #tabs {
@@ -27,8 +27,35 @@ html, body {
     display: flex;
     flex-direction: row;
     align-items: center;
-    overflow-x: hidden;
     gap: 5px;
+    margin-left: 10px;
+}
+
+#scroll-button-left {
+    margin-left: 20px;
+}
+
+#scroll-button-right {
+    position: absolute;
+    right: 20px;
+}
+
+.scroll-buttons {
+    width: 30px;
+    height: 30px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-right: 3px;
+    padding-left: 3px;
+}
+
+.scroll-buttons:hover {
+    background:rgba(211, 211, 211, 0.6);
+    border-radius: 4px;
+}
+
+.hide {
+    display: none;
 }
 
 .tab {
@@ -41,6 +68,7 @@ html, body {
     background: rgb(218, 215, 215);
     border: white 1px;
     overflow: hidden;
+    transition: 0.4s cubic-bezier(1, 0, 0, 1);
 }
 
 .title {

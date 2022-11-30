@@ -54,4 +54,19 @@ const addTab = document.getElementById('add-tab')
 
 addTab.addEventListener('click', ()=> {
     webpage.addTab()
+
+    let tabs = document.getElementById("tabs")
+    let tabBar = document.getElementById("tab-bar")   
+    let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
+    let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
+    tabsW = parseInt(tabsW)
+    maxW = parseInt(maxW) - (window.innerWidth * 0.2) - 5
+
+    // detect when length of tabs is too long and adds scroll buttons
+    if (tabsW >= maxW) {
+        document.getElementById('scroll-button-left').classList.remove('hide')
+        document.getElementById('scroll-button-right').classList.remove('hide')
+    }
 })
+
+

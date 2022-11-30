@@ -59,10 +59,12 @@ function addAndSwitchToTab() {
 
       //whenever title of page is updated, change tab title
       view.webContents.on('page-title-updated', (e)=> {
-        if (currURL != "https://duckduckgo.com/") {
+        if (currURL != homepageURL) {
             let title = view.webContents.getTitle()
             win.webContents.send("title-updated", title, currViewIndex)
-          }
+        } else {
+          win.webContents.send('title-updated', "New Tab", currViewIndex)
+        }
       })
   
       //handle certificate error
@@ -135,8 +137,8 @@ const createWindow = () => {
       minHeight: top_bar_height,
       webPreferences: {
         preload: path.join(__dirname, 'scripts/preload.js')
-      },
-      autoHideMenuBar: true
+      }//,
+      //autoHideMenuBar: true
     })
   
     win.loadFile('index.html')
@@ -152,6 +154,11 @@ const createWindow = () => {
     
 
     win.on("resize", handleWindowResize);
+    win.on("resize", ()=> {
+      setTimeout(()=>{
+        win.webContents.send("check-scroll-arrows")
+      }, 100)
+    })
 }
 
 app.whenReady().then(() => {
@@ -254,7 +261,7 @@ ipcMain.handle('switchTab', (e, id) => {
   currViewIndex = id
   view = browserViews[id]
   win.setBrowserView(view)
-  currURL = view.webContents.getURL()
+  currURL = browserViews[id].webContents.getURL()
   if (currURL != homepageURL) {
     win.webContents.send("urlUpdated", currURL)
   } else {
