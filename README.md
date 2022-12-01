@@ -16,3 +16,4 @@ Goals:
 - Optimize for speed (later). 
 - Add Roma theme to UI.
 - Add settings (theme, history, etc.)
+- Add favicons
