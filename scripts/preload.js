@@ -56,6 +56,36 @@ function reorderTabs(idRemoved) {
 }
 
 
+function checkScrollArrows() {
+  // check if scroll arrows needed or not
+  let tabs = document.getElementById("tabs")
+  let tabBar = document.getElementById("tab-bar")   
+  const leftButton = document.getElementById("scroll-button-left")
+  const rightButton = document.getElementById("scroll-button-right")
+  let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
+  let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
+  tabsW = parseInt(tabsW)
+  maxW = parseInt(maxW) - (window.innerWidth * 0.1)
+
+  if (tabsW <= maxW) {
+    document.getElementById('scroll-button-left').classList.add('hide')
+    document.getElementById('scroll-button-right').classList.add('hide')
+    document.getElementById('tab-bar').classList.remove('margin-left')
+  } else {
+    //now check for if we should add them
+    maxW = parseInt(maxW) - (window.innerWidth * 0.2) - 10
+    if (tabsW >= maxW) {
+      leftButton.classList.add('unusable')
+      rightButton.classList.remove('unusable')
+      document.getElementById('scroll-button-left').classList.remove('hide')
+      document.getElementById('scroll-button-right').classList.remove('hide')
+      document.getElementById('tab-bar').classList.add('margin-left')
+    }
+  }
+  
+}
+
+
 //connects index.js to main.js
 contextBridge.exposeInMainWorld('example', {
   ping: () => /** using this will send a message to main, to which main will respond. lets index.js talk to main.js */ ipcRenderer.invoke('ping')
@@ -112,49 +142,21 @@ ipcRenderer.on('title-updated', (event, title, currTab) => {
 
 ipcRenderer.on('new-tab', (event, tabId) => {
   document.getElementById('tabs').innerHTML += '<div id="' + tabId + '" class="tab active-tab"><div class="title" onclick="webpage.switchTab(this.parentNode.id)">New Tab</div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button></div>  '
+  checkScrollArrows()
+})
+
+ipcRenderer.on('close-tab', (event, tabId) => {
+  ipcRenderer.invoke("removeTab", tabId);
 })
 
 ipcRenderer.on('tab-destroyed', (event, id) => {
   //remove destroyed tab
   document.getElementById(id).parentNode.removeChild(document.getElementById(id))
   reorderTabs(id)
-
-  // check if scroll arrows needed or not
-  let tabs = document.getElementById("tabs")
-  let tabBar = document.getElementById("tab-bar")   
-  let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
-  let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
-  tabsW = parseInt(tabsW)
-  maxW = parseInt(maxW) - (window.innerWidth * 0.1)
-
-  if (tabsW <= maxW) {
-    document.getElementById('scroll-button-left').classList.add('hide')
-    document.getElementById('scroll-button-right').classList.add('hide')
-  }
+  checkScrollArrows()
 })
 
 ipcRenderer.on('check-scroll-arrows', (e) => {
   // basically should fire every window size change
-
-  // check if scroll arrows needed or not
-  let tabs = document.getElementById("tabs")
-  let tabBar = document.getElementById("tab-bar")   
-  let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
-  let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
-  tabsW = parseInt(tabsW)
-  maxW = parseInt(maxW) - (window.innerWidth * 0.1)
-
-
-  if (tabsW <= maxW) {
-    document.getElementById('scroll-button-left').classList.add('hide')
-    document.getElementById('scroll-button-right').classList.add('hide')
-  } else {
-    //now check for if we should add them
-    maxW = parseInt(maxW) - (window.innerWidth * 0.2) - 5
-    if (tabsW >= maxW) {
-      document.getElementById('scroll-button-left').classList.remove('hide')
-      document.getElementById('scroll-button-right').classList.remove('hide')
-    }
-  }
-  
+  checkScrollArrows()
 })

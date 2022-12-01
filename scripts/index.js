@@ -66,7 +66,41 @@ addTab.addEventListener('click', ()=> {
     if (tabsW >= maxW) {
         document.getElementById('scroll-button-left').classList.remove('hide')
         document.getElementById('scroll-button-right').classList.remove('hide')
+        document.getElementById('tab-bar').classList.add('margin-left')
     }
 })
 
+// handle scroll button clicks
+const leftButton = document.getElementById("scroll-button-left")
+const rightButton = document.getElementById("scroll-button-right")
+const tabBar = document.getElementById("tab-bar")   
+const tabs = document.getElementById("tabs")
 
+leftButton.addEventListener("click", (e) => {
+    let tab = document.getElementById('0') // get first tab, which will always exist
+    let amtToScroll = window.getComputedStyle(tab).getPropertyValue('width').slice(0, -2);
+    tabBar.scrollLeft -= parseInt(amtToScroll)
+    
+    // find out if we can scroll more
+    if (tabBar.scrollLeft == 0) {
+        leftButton.classList.add('unusable')
+    }
+
+    rightButton.classList.remove('unusable')
+})
+
+rightButton.addEventListener("click", (e) => {
+    let tab = document.getElementById('0') // get first tab, which will always exist
+    let amtToScroll = window.getComputedStyle(tab).getPropertyValue('width').slice(0, -2);
+    tabBar.scrollLeft += parseInt(amtToScroll)
+
+    let maxScrollRight = parseInt(window.getComputedStyle(tabs).getPropertyValue('width').slice(0,-2)) - 317
+
+    // find if we can scroll more
+    if (tabBar.scrollLeft == maxScrollRight) {
+        rightButton.classList.add('unusable')
+    }
+
+    // reenable left button, since after right scroll it must be possible
+    leftButton.classList.remove('unusable')
+})

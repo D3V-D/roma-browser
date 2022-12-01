@@ -1,4 +1,4 @@
-const { session, app, dialog, ipcMain, BrowserView, BrowserWindow, webContents, globalShortcut } = require('electron')
+const { session, app, dialog, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
 const path = require('path');
 let win;
 let view;
@@ -159,18 +159,38 @@ const createWindow = () => {
         win.webContents.send("check-scroll-arrows")
       }, 100)
     })
+
+    // handle shortcuts
+    win.webContents.on('before-input-event', (event, input) => {
+    
+      // open tab Ctrl + T
+      if (input.control && input.key.toLowerCase() === 't') {
+        addAndSwitchToTab()
+        event.preventDefault()
+      }
+
+      // close tab Ctrl + W
+      if (input.control && input.key.toLowerCase() === 'w') {
+        win.webContents.send('close-tab', currViewIndex)
+        event.preventDefault()
+      }
+
+      // open devTools Ctrl + Shift + I
+      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        view.webContents.openDevTools("right")
+        event.preventDefault()
+      }
+    
+      // reload on Ctrl + R
+      if (input.control && input.key.toLowerCase() === 'r') {
+        view.webContents.reload()
+        event.preventDefault()
+      }
+    })
 }
 
 app.whenReady().then(() => {
     createWindow()
-
-    globalShortcut.register('CommandOrControl+Shift+I', ()=> {
-      view.webContents.openDevTools("right")
-    })
-
-    globalShortcut.register('CommandOrControl+Option+I', ()=> {
-      view.webContents.openDevTools("right")
-    })
 
     // MacOS open window if none are open.
     app.on('activate', () => {
@@ -209,8 +229,7 @@ ipcMain.handle('goForward', ()=> {
 })
 
 ipcMain.handle('refresh', ()=> {
-  if (view.webContents.isLoading) view.webContents.stop()
-  else view.webContents.loadURL(currURL)
+  view.webContents.reload()
 })
 
 ipcMain.handle('addTab', ()=> {
@@ -267,7 +286,19 @@ ipcMain.handle('switchTab', (e, id) => {
   } else {
     win.webContents.send("urlUpdated", '')
   }
+
+   // grey out button if not able to go back/forward
+   if (!view.webContents.canGoBack()) {
+    win.webContents.send('cannotGoBack')
+  } else {
+    win.webContents.send('canGoBack')
+  }
+
+  if (!view.webContents.canGoForward()) {
+    win.webContents.send('cannotGoForward')
+  } else {
+    win.webContents.send('canGoForward')
+  }
   handleWindowResize()
 })
-
 
