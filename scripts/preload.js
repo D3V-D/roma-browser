@@ -58,23 +58,21 @@ function reorderTabs(idRemoved) {
 
 function checkScrollArrows() {
   // check if scroll arrows needed or not
+  let tabBar = document.getElementById('tab-bar')
   let tabs = document.getElementById("tabs")
-  let tabBar = document.getElementById("tab-bar")   
   const leftButton = document.getElementById("scroll-button-left")
   const rightButton = document.getElementById("scroll-button-right")
-  let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
-  let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
-  tabsW = parseInt(tabsW)
-  maxW = parseInt(maxW) - (window.innerWidth * 0.1)
+  let tabsW =  tabs.scrollWidth
+  let maxW = tabBar.clientWidth - 21
 
-  if (tabsW <= maxW) {
+  // this is for the first check, to see if we need to remove them
+  if (tabsW <= maxW) { // if less than overflow
     document.getElementById('scroll-button-left').classList.add('hide')
     document.getElementById('scroll-button-right').classList.add('hide')
     document.getElementById('tab-bar').classList.remove('margin-left')
   } else {
     //now check for if we should add them
-    maxW = parseInt(maxW) - (window.innerWidth * 0.2) - 10
-    if (tabsW >= maxW) {
+    if (tabsW > maxW) { // if more than overflow
       leftButton.classList.add('unusable')
       rightButton.classList.remove('unusable')
       document.getElementById('scroll-button-left').classList.remove('hide')
@@ -82,7 +80,6 @@ function checkScrollArrows() {
       document.getElementById('tab-bar').classList.add('margin-left')
     }
   }
-  
 }
 
 
@@ -147,6 +144,7 @@ ipcRenderer.on('new-tab', (event, tabId) => {
 
 ipcRenderer.on('close-tab', (event, tabId) => {
   ipcRenderer.invoke("removeTab", tabId);
+  checkScrollArrows()
 })
 
 ipcRenderer.on('tab-destroyed', (event, id) => {

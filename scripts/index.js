@@ -55,13 +55,9 @@ const addTab = document.getElementById('add-tab')
 addTab.addEventListener('click', ()=> {
     webpage.addTab()
 
-    let tabs = document.getElementById("tabs")
     let tabBar = document.getElementById("tab-bar")   
-    let tabsW =  window.getComputedStyle(tabs).getPropertyValue('width').slice(0, -2)
-    let maxW = window.getComputedStyle(tabBar).getPropertyValue('width').slice(0, -2)
-    tabsW = parseInt(tabsW)
-    maxW = parseInt(maxW) - (window.innerWidth * 0.2) - 5
-
+    let tabsW =  tabs.scrollWidth
+    let maxW = tabBar.clientWidth - 21
     // detect when length of tabs is too long and adds scroll buttons
     if (tabsW >= maxW) {
         document.getElementById('scroll-button-left').classList.remove('hide')
@@ -94,10 +90,10 @@ rightButton.addEventListener("click", (e) => {
     let amtToScroll = window.getComputedStyle(tab).getPropertyValue('width').slice(0, -2);
     tabBar.scrollLeft += parseInt(amtToScroll)
 
-    let maxScrollRight = parseInt(window.getComputedStyle(tabs).getPropertyValue('width').slice(0,-2)) - 317
-
+    let isFullyScrolled = tabBar.scrollWidth - tabBar.scrollLeft === tabBar.clientWidth
+    
     // find if we can scroll more
-    if (tabBar.scrollLeft == maxScrollRight) {
+    if (isFullyScrolled) {
         rightButton.classList.add('unusable')
     }
 
