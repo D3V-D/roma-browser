@@ -169,8 +169,6 @@ ipcRenderer.on('close-tab', (event, tabId) => {
 })
 
 ipcRenderer.on('change-active-tab', (event, tabId, oldId) => {
-  console.log(oldId + " deactivated")
-  console.log(tabId + " now active --")
   document.getElementById(tabId).classList.add('active-tab')
   
   if (document.getElementById(oldId)) {
