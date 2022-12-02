@@ -179,6 +179,7 @@ ipcRenderer.on('change-active-tab', (event, tabId, oldId) => {
 ipcRenderer.on('tab-destroyed', (event, id) => {
   //remove destroyed tab
   document.getElementById(id).parentNode.removeChild(document.getElementById(id))
+  ipcRenderer.invoke("checkCanGoBackOrForward")
   reorderTabs(id)
   checkScrollArrows()
 })

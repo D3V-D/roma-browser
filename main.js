@@ -486,7 +486,7 @@ ipcMain.handle('addTab', ()=> {
   addAndSwitchToTab()
 })
 
-ipcMain.handle('removeTab', (e, id)=> {
+ipcMain.handle('removeTab', async (e, id)=> {
   // turn off fullscreen in case
   win.webContents.send('fullscreen-off')
   // id == index to delete
@@ -504,7 +504,7 @@ ipcMain.handle('removeTab', (e, id)=> {
       win.webContents.send('change-active-tab', currViewIndex, id)
     }
 
-    win.setBrowserView(view)
+    await win.setBrowserView(view)
     win.webContents.send('done-loading')
     browserViews[id].webContents.removeAllListeners()
     browserViews[id] = null
@@ -535,6 +535,21 @@ ipcMain.handle('removeTab', (e, id)=> {
   }
 
   view.webContents.focus()
+})
+
+ipcMain.handle('checkCanGoBackOrForward', (e) => {
+  // grey out button if not able to go back/forward
+  if (!view.webContents.canGoBack()) {
+    win.webContents.send('cannotGoBack')
+  } else {
+    win.webContents.send('canGoBack')
+  }
+
+  if (!view.webContents.canGoForward()) {
+    win.webContents.send('cannotGoForward')
+  } else {
+    win.webContents.send('canGoForward')
+  }
 })
 
 ipcMain.handle('switchTab', (e, id) => {
