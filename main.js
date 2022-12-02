@@ -32,6 +32,7 @@ function addAndSwitchToTab(urlToOpen) {
     win.webContents.send('urlUpdated', '')
   }
 
+  win.webContents.send('fullscreen-off')
   win.setBrowserView(view)
   view.webContents.focus()
   numTabs ++;
@@ -64,6 +65,60 @@ function addAndSwitchToTab(urlToOpen) {
           event.preventDefault()
         }
       }
+    })
+
+    // handle fullscreen
+    view.webContents.on('enter-html-full-screen', (e) => {
+      setTimeout(() => {
+        if (win)
+        view.setBounds({
+          x: 0,
+          y: 0,
+          width: win.getBounds().width,
+          height: win.getBounds().height,
+        });
+        }, 0);
+      win.webContents.send('fullscreen-on')
+    })
+
+    win.on('enter-full-screen', (e) => {
+      setTimeout(() => {
+        if (win)
+        view.setBounds({
+          x: 0,
+          y: 0,
+          width: win.getBounds().width,
+          height: win.getBounds().height,
+        });
+        }, 0);
+      win.webContents.send('fullscreen-on')
+    })
+
+    // handle leaving fullscreen
+    view.webContents.on('leave-html-full-screen', (e) => {
+      setTimeout(() => {
+        if (win)
+        view.setBounds({
+          x: 0,
+          y: top_bar_height,
+          width: win.getBounds().width,
+          height: win.getBounds().height - top_bar_height,
+        });
+        }, 0);
+      win.webContents.send('fullscreen-off')
+    })
+
+    win.on('leave-full-screen', (e) => {
+      setTimeout(() => {
+        if (win)
+        view.setBounds({
+          x: 0,
+          y: top_bar_height,
+          width: win.getBounds().width,
+          height: win.getBounds().height - top_bar_height,
+        });
+        }, 0);
+      win.webContents.send('fullscreen-off')
     })
 
       // update url on navigation
@@ -422,10 +477,12 @@ ipcMain.handle('addTab', ()=> {
 })
 
 ipcMain.handle('removeTab', (e, id)=> {
+  // turn off fullscreen in case
+  win.webContents.send('fullscreen-off')
   // id == index to delete
   if (id == currViewIndex && numTabs > 1) {
     //if deleting current tab and it's not the only tab
-    
+    view.webContents.loadURL(homepageURL)
     //check if current tab is first tab. if so, switch to second tab. if not, switch to tab before this one.
     if (currViewIndex == 0) {
       view = browserViews[1]
@@ -436,7 +493,9 @@ ipcMain.handle('removeTab', (e, id)=> {
     }
 
     win.setBrowserView(view)
-    browserViews[id].destroy
+    win.webContents.send('done-loading')
+    browserViews[id].webContents.removeAllListeners()
+    browserViews[id] = null
     win.webContents.send('tab-destroyed', id)
     currURL = view.webContents.getURL()
     win.webContents.send('urlUpdated', view.webContents.getURL())
@@ -448,14 +507,16 @@ ipcMain.handle('removeTab', (e, id)=> {
     win.close()
   } else if (id < currViewIndex) {
     // if deleting tab before the one we are on
-    browserViews[id].destroy
+    browserViews[id].webContents.removeAllListeners()
+    browserViews[id] = null
     win.webContents.send('tab-destroyed', id)
     browserViews.splice(id, 1)
     currViewIndex -= 1;
     numTabs -= 1;
   } else if (id > currViewIndex) {
     // if deleting a tab after the current tab
-    browserViews[id].destroy
+    browserViews[id].webContents.removeAllListeners()
+    browserViews[id] = null
     win.webContents.send('tab-destroyed', id)
     browserViews.splice(id, 1)
     numTabs -= 1;

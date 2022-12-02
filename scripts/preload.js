@@ -177,3 +177,12 @@ ipcRenderer.on('check-scroll-arrows', (e) => {
   // basically should fire every window size change
   checkScrollArrows()
 })
+
+//handle fullscreen
+ipcRenderer.on('fullscreen-on', (e)=>{
+  document.getElementById('top-bar').classList.add('zero-height')
+})
+
+ipcRenderer.on('fullscreen-off', async (e)=> {
+  await document.getElementById('top-bar').classList.remove('zero-height')
+})
