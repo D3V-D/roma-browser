@@ -156,14 +156,26 @@ ipcRenderer.on('favicon-updated', (event, faviconURL, currTab) => {
   setFavicon(currTab, faviconURL)
 })
 
-ipcRenderer.on('new-tab', (event, tabId) => {
-  document.getElementById('tabs').innerHTML += '<div id="' + tabId + '" class="tab active-tab"><div class="title" onclick="webpage.switchTab(this.parentNode.id)"><img class="favicon" src="img/favicon.ico"><span class="title-text">New Tab</span></div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button></div>  '
+ipcRenderer.on('new-tab', (event, tabId, oldId) => {
+  document.getElementById('tabs').innerHTML += '<div id="' + tabId + '" class="tab active-tab"><div class="title" onclick="webpage.switchTab(this.parentNode.id)"><img class="favicon" src="img/favicon.ico"><span class="title-text">New Tab</span></div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button></div>'  
+  if (tabId != 0) document.getElementById(oldId).classList.remove('active-tab')
+
   checkScrollArrows()
 })
 
 ipcRenderer.on('close-tab', (event, tabId) => {
   ipcRenderer.invoke("removeTab", tabId);
   checkScrollArrows()
+})
+
+ipcRenderer.on('change-active-tab', (event, tabId, oldId) => {
+  console.log(oldId + " deactivated")
+  console.log(tabId + " now active --")
+  document.getElementById(tabId).classList.add('active-tab')
+  
+  if (document.getElementById(oldId)) {
+    document.getElementById(oldId).classList.remove('active-tab')
+  }
 })
 
 ipcRenderer.on('tab-destroyed', (event, id) => {

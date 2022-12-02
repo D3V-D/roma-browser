@@ -18,7 +18,7 @@ searchBar.addEventListener("keypress", (e)=> {
             } else {
                 webpage.open('https://' + url)
             }
-        } else if (url.startsWith('http://localhost') || url.startsWith('https://')) {
+        } else if (url.startsWith('http://localhost') || url.startsWith('https://') || url.startsWith('file://')) {
             webpage.open(url) //handle cases in which there is a valid http: but it is missed by regex
         } else if (url.startsWith('localhost')) { 
             webpage.open('http://' + url) //handle localhost case

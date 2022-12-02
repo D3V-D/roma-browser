@@ -82,10 +82,21 @@ html, body {
     padding-right: 2px;
     width: clamp(60px, 12vw, 200px);
     border-radius: 4px;
-    background: rgb(218, 215, 215);
-    border: white 1px;
     overflow: hidden;
     transition: 0.1s cubic-bezier(1, 0, 0, 1);
+}
+
+.tab:hover {
+    background:rgb(240, 236, 236);
+}
+
+.active-tab {
+    background: rgb(218, 215, 215);
+    border: white 1px;
+}
+
+.active-tab:hover {
+    background: rgb(218, 215, 215);
 }
 
 .favicon {

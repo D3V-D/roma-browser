@@ -20,7 +20,13 @@ function addAndSwitchToTab(urlToOpen) {
   }
 
   currViewIndex = browserViews.length
-  win.webContents.send("new-tab", currViewIndex)
+
+  if (view) {
+    win.webContents.send("new-tab", currViewIndex, browserViews.indexOf(view))
+  } else {
+    win.webContents.send("new-tab", currViewIndex)
+  }
+
   browserViews[currViewIndex] = new BrowserView({
     webPreferences: {
       preload: path.join(__dirname, 'scripts/preload.js')
@@ -81,18 +87,7 @@ function addAndSwitchToTab(urlToOpen) {
       win.webContents.send('fullscreen-on')
     })
 
-    win.on('enter-full-screen', (e) => {
-      setTimeout(() => {
-        if (win)
-        view.setBounds({
-          x: 0,
-          y: 0,
-          width: win.getBounds().width,
-          height: win.getBounds().height,
-        });
-        }, 0);
-      win.webContents.send('fullscreen-on')
-    })
+    
 
     // handle leaving fullscreen
     view.webContents.on('leave-html-full-screen', (e) => {
@@ -108,19 +103,7 @@ function addAndSwitchToTab(urlToOpen) {
       win.webContents.send('fullscreen-off')
     })
 
-    win.on('leave-full-screen', (e) => {
-      setTimeout(() => {
-        if (win)
-        view.setBounds({
-          x: 0,
-          y: top_bar_height,
-          width: win.getBounds().width,
-          height: win.getBounds().height - top_bar_height,
-        });
-        }, 0);
-      win.webContents.send('fullscreen-off')
-    })
-
+    
       // update url on navigation
       view.webContents.on('did-navigate', (event, url)=> {
         
@@ -380,6 +363,33 @@ const createWindow = () => {
       }, 100)
     })
 
+    // handle window fullscreen (diff from maximize)
+    win.on('enter-full-screen', (e) => {
+      setTimeout(() => {
+        if (win)
+        view.setBounds({
+          x: 0,
+          y: 0,
+          width: win.getBounds().width,
+          height: win.getBounds().height,
+        });
+        }, 0);
+      win.webContents.send('fullscreen-on')
+    })
+
+    win.on('leave-full-screen', (e) => {
+      setTimeout(() => {
+        if (win)
+        view.setBounds({
+          x: 0,
+          y: top_bar_height,
+          width: win.getBounds().width,
+          height: win.getBounds().height - top_bar_height,
+        });
+        }, 0);
+      win.webContents.send('fullscreen-off')
+    })
+
     // handle shortcuts
     win.webContents.on('before-input-event', (event, input) => {
     
@@ -486,10 +496,12 @@ ipcMain.handle('removeTab', (e, id)=> {
     //check if current tab is first tab. if so, switch to second tab. if not, switch to tab before this one.
     if (currViewIndex == 0) {
       view = browserViews[1]
+      win.webContents.send('change-active-tab', "1", "0")
       currViewIndex += 1
     } else {
       view = browserViews[currViewIndex-1]      
       currViewIndex -= 1
+      win.webContents.send('change-active-tab', currViewIndex, id)
     }
 
     win.setBrowserView(view)
@@ -526,12 +538,12 @@ ipcMain.handle('removeTab', (e, id)=> {
 })
 
 ipcMain.handle('switchTab', (e, id) => {
+  win.webContents.send("change-active-tab", id, currViewIndex)
   currViewIndex = id
   view = browserViews[id]
   win.setBrowserView(view)
   currURL = browserViews[id].webContents.getURL()
   win.webContents.send("urlUpdated", currURL)
-
 
    // grey out button if not able to go back/forward
    if (!view.webContents.canGoBack()) {
