@@ -4,7 +4,6 @@
 
 Goals:
 - Add features.
-- Profit! <- *A lot!*
 - Home Screen Image
 - Host Search Engine (add link to search engine github) 
 - Better landing page 
@@ -12,4 +11,6 @@ Goals:
 - Optimize for speed (later). 
 - Add Roma theme to UI.
 - Add settings (theme, history, etc.)
+- ???
+- Profit! <- *A lot!*
 
