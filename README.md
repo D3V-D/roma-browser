@@ -1,7 +1,6 @@
 # Roma Browser 🍅
-Roma Browser with Caesar search engine. 🏛
-
-By Alex Srivastava and Deven
+### Roma Browser with Caesar search engine. 🏛
+#### By Alex Srivastava and Deven
 
 Goals:
 - Create a working browser *
