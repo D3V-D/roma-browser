@@ -1,8 +1,11 @@
 const { Menu, app, dialog, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
 const path = require('path');
+const fs = require('fs');
 let win;
 let view;
 let currViewIndex;
+let currFavURL;
+let goAheadInsecure = false;
 let numTabs = 0;
 const top_bar_height = 100;
 let browserViews = [];
@@ -11,28 +14,66 @@ let homepageURL = "https://duckduckgo.com/"
 const isMac = process.platform === 'darwin'
 
 // function to create new tabs
-function addAndSwitchToTab() {
+function addAndSwitchToTab(urlToOpen) {
+  if (!urlToOpen) {
+    urlToOpen = homepageURL
+  }
+
   currViewIndex = browserViews.length
   win.webContents.send("new-tab", currViewIndex)
-  browserViews[currViewIndex] = new BrowserView()
+  browserViews[currViewIndex] = new BrowserView({
+    webPreferences: {
+      preload: path.join(__dirname, 'scripts/preload.js')
+    }
+  })
   view = browserViews[currViewIndex]
-  view.webContents.loadURL(homepageURL)
-  win.webContents.send('urlUpdated', '')
+  view.webContents.loadURL(urlToOpen)
+  if (urlToOpen == homepageURL) {
+    win.webContents.send('urlUpdated', '')
+  }
+
   win.setBrowserView(view)
+  view.webContents.focus()
   numTabs ++;
   handleWindowResize()
 
-      // update url on navigation
-      view.webContents.on('did-navigate', (event, url)=> {
-        if(!url.startsWith("file:") && !(url == homepageURL)) {
-          currURL = url
-          win.webContents.send('urlUpdated', currURL)
+      // handle shortcuts (in view)
+    view.webContents.on('before-input-event', (event, input) => {
+      if (input.type == 'keyDown') {
+        // open tab Ctrl + T
+        if (input.control && input.key.toLowerCase() === 't') {
+          addAndSwitchToTab()
+          event.preventDefault()
         }
 
-        if (url == homepageURL) {
-          currURL = homepageURL
-          win.webContents.send('urlUpdated', '')
+        // close tab Ctrl + W
+        if (input.control && input.key.toLowerCase() === 'w') {
+          win.webContents.send('close-tab', currViewIndex)
+          event.preventDefault()
         }
+
+        // open devTools Ctrl + Shift + I
+        if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+          view.webContents.openDevTools("right")
+          event.preventDefault()
+        }
+      
+        // reload on Ctrl + R
+        if (input.control && input.key.toLowerCase() === 'r') {
+          view.webContents.reload()
+          event.preventDefault()
+        }
+      }
+    })
+
+      // update url on navigation
+      view.webContents.on('did-navigate', (event, url)=> {
+        
+        if (!url.startsWith('file://')) {
+          currURL = url
+        }
+        
+        win.webContents.send('urlUpdated', currURL)
   
          // grey out button if not able to go back/forward
         if (!view.webContents.canGoBack()) {
@@ -45,41 +86,77 @@ function addAndSwitchToTab() {
           win.webContents.send('cannotGoForward')
         } else {
           win.webContents.send('canGoForward')
-        }
-  
-        //animate loading button when loading
-        if(view.webContents.isLoading()) {
-          win.webContents.send('loading...')
-        }
-        
+        }        
+      })
+    
+      //animate loading button on load
+      view.webContents.on('did-start-loading', (e) => {
+        win.webContents.send('loading...', currViewIndex)
       })
       
+      view.webContents.on('did-stop-loading', (e) => {
+        win.webContents.send('done-loading', currViewIndex, currFavURL)
+      })
+
       view.webContents.on('did-finish-load', (e) => {
-        win.webContents.send('done-loading')
+        win.webContents.send('done-loading', currViewIndex, currFavURL)
       })
 
       //whenever title of page is updated, change tab title
       view.webContents.on('page-title-updated', (e)=> {
         if (currURL != homepageURL) {
-            let title = view.webContents.getTitle()
-            win.webContents.send("title-updated", title, currViewIndex)
+          let title = view.webContents.getTitle()
+          win.webContents.send("title-updated", title, currViewIndex)
         } else {
           win.webContents.send('title-updated', "New Tab", currViewIndex)
         }
       })
+
+      //similarly, update favicon
+      view.webContents.on('page-favicon-updated', (e, favicons)=> {
+        if (currURL != homepageURL) {
+          win.webContents.send('favicon-updated', favicons[0], currViewIndex)
+          currFavURL = favicons[0]
+        } else {
+          win.webContents.send('favicon-updated', "img/favicon.ico", currViewIndex)
+          currFavURL = "img/favicon.ico"
+        }
+      })
   
       //handle certificate error
-      view.webContents.on('certificate-error', (e, url, err, cert) => {
-        currURL = url
-        view.webContents.loadFile('html/insecure.html')
+      view.webContents.on('certificate-error', (e, url, err, cert, callback) => {
+        if (goAheadInsecure) {
+          currURL = url
+          e.preventDefault()
+          callback(true)
+          goAheadInsecure = false
+        } else {
+          callback(false)
+          currURL = url
+          currFavURL = "img/error.ico"
+          console.log(err)
+          view.webContents.loadFile('error/insecure.html')
+          win.webContents.send('favicon-updated', "img/error.ico", currViewIndex)
+          
+          let storeErr = {
+            lastErr: err,
+            cert: cert
+          }
+
+          fs.writeFile('jsons/error.json', JSON.stringify(storeErr), (error) => {
+            if (error) throw error
+          })
+        }
       })
   
       //handle failed url
       view.webContents.on('did-fail-load', (e, eCode, eDesc, validatedURL) =>{
         if (eCode != -3) {// -3 means user action
           currURL = validatedURL
-          view.webContents.loadFile('html/error.html')
+          currFavURL = "img/error.ico"
+          view.webContents.loadFile('error/error.html')
         }
+        win.webContents.send('done-loading')
       })
   
       //handle unresponsiveness
@@ -112,6 +189,7 @@ function addAndSwitchToTab() {
           event.preventDefault()
         }
       })
+
 }
 
 //handle window resizing
@@ -141,7 +219,6 @@ const createWindow = () => {
       },
       autoHideMenuBar: true
     })
-    
     // create menu
     const template = [
       // { role: 'appMenu' }
@@ -220,7 +297,7 @@ const createWindow = () => {
             { type: 'separator' },
             { role: 'window' }
           ] : [
-            { role: 'close' }
+            { role: 'minimize' }
           ])
         ]
       },
@@ -251,30 +328,34 @@ const createWindow = () => {
     // handle shortcuts
     win.webContents.on('before-input-event', (event, input) => {
     
-      // open tab Ctrl + T
-      if (input.control && input.key.toLowerCase() === 't') {
-        addAndSwitchToTab()
-        event.preventDefault()
-      }
+      if (input.type == 'keyDown') {
+        // open tab Ctrl + T
+        if (input.control && input.key.toLowerCase() === 't') {
+          addAndSwitchToTab()
+          event.preventDefault()
+        }
 
-      // close tab Ctrl + W
-      if (input.control && input.key.toLowerCase() === 'w') {
-        win.webContents.send('close-tab', currViewIndex)
-        event.preventDefault()
-      }
+        // close tab Ctrl + W
+        if (input.control && input.key.toLowerCase() === 'w') {
+          win.webContents.send('close-tab', currViewIndex)
+          event.preventDefault()
+        }
 
-      // open devTools Ctrl + Shift + I
-      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-        view.webContents.openDevTools("right")
-        event.preventDefault()
-      }
-    
-      // reload on Ctrl + R
-      if (input.control && input.key.toLowerCase() === 'r') {
-        view.webContents.reload()
-        event.preventDefault()
+        // open devTools Ctrl + Shift + I
+        if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+          view.webContents.openDevTools("right")
+          event.preventDefault()
+        }
+      
+        // reload on Ctrl + R
+        if (input.control && input.key.toLowerCase() === 'r') {
+          view.webContents.reload()
+          event.preventDefault()
+        }
       }
     })
+
+    
 }
 
 app.whenReady().then(() => {
@@ -290,6 +371,22 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
+
+//when it attempts to create new window
+app.on('web-contents-created', (createEvent, contents) => {
+  
+  contents.on('new-window', newEvent => {
+    console.log("Blocked by 'new-window'")
+    newEvent.preventDefault();
+  });
+  
+  contents.setWindowOpenHandler(({ url }) => {
+    addAndSwitchToTab(url)
+    currURL = url
+    return { action: 'deny' }
+  })
+  
+});
 
 // handle a ping message from preload
 ipcMain.handle('ping', () => {
@@ -341,6 +438,7 @@ ipcMain.handle('removeTab', (e, id)=> {
     win.setBrowserView(view)
     browserViews[id].destroy
     win.webContents.send('tab-destroyed', id)
+    currURL = view.webContents.getURL()
     win.webContents.send('urlUpdated', view.webContents.getURL())
     browserViews.splice(id, 1)
     numTabs -= 1;
@@ -362,6 +460,8 @@ ipcMain.handle('removeTab', (e, id)=> {
     browserViews.splice(id, 1)
     numTabs -= 1;
   }
+
+  view.webContents.focus()
 })
 
 ipcMain.handle('switchTab', (e, id) => {
@@ -369,11 +469,8 @@ ipcMain.handle('switchTab', (e, id) => {
   view = browserViews[id]
   win.setBrowserView(view)
   currURL = browserViews[id].webContents.getURL()
-  if (currURL != homepageURL) {
-    win.webContents.send("urlUpdated", currURL)
-  } else {
-    win.webContents.send("urlUpdated", '')
-  }
+  win.webContents.send("urlUpdated", currURL)
+
 
    // grey out button if not able to go back/forward
    if (!view.webContents.canGoBack()) {
@@ -390,3 +487,8 @@ ipcMain.handle('switchTab', (e, id) => {
   handleWindowResize()
 })
 
+//handle if they would like to proceed to an insecure site
+ipcMain.handle("goAheadInsecure", (e)=>{
+  goAheadInsecure = true
+  view.webContents.loadURL(currURL)
+})

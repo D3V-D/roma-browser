@@ -55,7 +55,16 @@ function reorderTabs(idRemoved) {
     }
 }
 
+// attempts to set favicon and handles fail
+function setFavicon(currTab, faviconURL) {
+  parentTab = document.getElementById('' + currTab + '')
+  img = parentTab.getElementsByClassName('title')[0].getElementsByClassName('favicon')[0]
+  img.classList.remove('hide') // in case it's been hidden
+  img.src = faviconURL 
+  img.onerror = () => { img.classList.add('hide') } // if fails to get favicon
+}
 
+// function to check if arrows are needed for tab scrlling
 function checkScrollArrows() {
   // check if scroll arrows needed or not
   let tabBar = document.getElementById('tab-bar')
@@ -94,6 +103,7 @@ contextBridge.exposeInMainWorld('webpage', {
   validate: (url) => isURL.test(url),
   goBack: () => ipcRenderer.invoke('goBack'),
   goForward: () => ipcRenderer.invoke('goForward'),
+  goAheadInsecure: () => ipcRenderer.invoke('goAheadInsecure'),
   refresh: () => ipcRenderer.invoke('refresh'),
   addTab: () => ipcRenderer.invoke('addTab'),
   switchTab: (id) => ipcRenderer.invoke('switchTab', id),
@@ -102,7 +112,7 @@ contextBridge.exposeInMainWorld('webpage', {
 
 //handle messages from main 
 ipcRenderer.on('urlUpdated', (event, url) => {
-  if (url != 'https://duckduckgo.com/') {
+  if (url != 'https://duckduckgo.com/' && !url.startsWith("file://")) {
     document.getElementById("searchBar").value = url
   } else {
     document.getElementById("searchBar").value = ""
@@ -125,20 +135,29 @@ ipcRenderer.on('canGoForward', (event) => {
   document.getElementById('forwards').classList.remove('unusable')
 })
 
-ipcRenderer.on('loading...', (event) => {
+ipcRenderer.on('loading...', (event, currTab) => {
   document.getElementById('refresh').innerHTML = '<img src="img/loading.gif" width="16" height="16"></img>'
+  // add favicon loader
+  setFavicon(currTab, "img/favicon-loading.gif")
 })
 
-ipcRenderer.on('done-loading', (event) => {
+ipcRenderer.on('done-loading', (event, currTab, faviconURL) => {
   document.getElementById('refresh').innerHTML = '<img src="img/reload.png" width="16" height="16"></img>'
+  // remove favicon loader
+  setFavicon(currTab, faviconURL)
 })
 
 ipcRenderer.on('title-updated', (event, title, currTab) => {
-  document.getElementById('' + currTab + '').innerHTML = '<div class="title" onclick="webpage.switchTab(this.parentNode.id)">' + title + '</div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button>'
+  parentTab = document.getElementById('' + currTab + '')
+  parentTab.getElementsByClassName('title')[0].getElementsByClassName('title-text')[0].innerHTML = title
+})
+
+ipcRenderer.on('favicon-updated', (event, faviconURL, currTab) => {
+  setFavicon(currTab, faviconURL)
 })
 
 ipcRenderer.on('new-tab', (event, tabId) => {
-  document.getElementById('tabs').innerHTML += '<div id="' + tabId + '" class="tab active-tab"><div class="title" onclick="webpage.switchTab(this.parentNode.id)">New Tab</div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button></div>  '
+  document.getElementById('tabs').innerHTML += '<div id="' + tabId + '" class="tab active-tab"><div class="title" onclick="webpage.switchTab(this.parentNode.id)"><img class="favicon" src="img/favicon.ico"><span class="title-text">New Tab</span></div><button class="close-tab" onclick="webpage.removeTab(this.parentNode.id)">&#x2715;</button></div>  '
   checkScrollArrows()
 })
 

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Insecure</title> 
+        <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+    <link href="styles/errorStyle.css" rel="stylesheet">
+    </head>
+    <body>
+        <h1>
+            Wait!
+        </h1>
+        <h3>
+            This site may be unsafe. Please check that the address you entered was correct.
+        </h3>
+        <button id="go-back" class="action-button">Go back</button>
+        <details>
+             <summary id="advanced-button">Advanced</summary>
+             <p id="advanced-details">
+             </p>
+             <button id="go-ahead" class="action-button">
+                I Understand the Risk and Wish to Continue.
+             </button>
+        </details>
+        <script src="scripts/error.js"></script>
+    </body>
+</html>

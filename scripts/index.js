@@ -100,3 +100,4 @@ rightButton.addEventListener("click", (e) => {
     // reenable left button, since after right scroll it must be possible
     leftButton.classList.remove('unusable')
 })
+
