@@ -169,11 +169,10 @@ ipcRenderer.on('close-tab', (event, tabId) => {
 })
 
 ipcRenderer.on('change-active-tab', (event, tabId, oldId) => {
-  document.getElementById(tabId).classList.add('active-tab')
-  
   if (document.getElementById(oldId)) {
     document.getElementById(oldId).classList.remove('active-tab')
   }
+  document.getElementById(tabId).classList.add('active-tab')
 })
 
 ipcRenderer.on('tab-destroyed', (event, id) => {
