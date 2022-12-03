@@ -29,5 +29,8 @@
   "homepage": "https://github.com/D3V-D/roma-browser#readme",
   "devDependencies": {
     "electron": "^21.3.1"
+  },
+  "dependencies": {
+    "electron-context-menu": "^3.6.0"
   }
 }

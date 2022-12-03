@@ -1,4 +1,5 @@
 const { Menu, app, dialog, ipcMain, BrowserView, BrowserWindow, webContents } = require('electron')
+const contextMenu = require('electron-context-menu')
 const path = require('path');
 const fs = require('fs');
 let win;
@@ -32,8 +33,10 @@ function addAndSwitchToTab(urlToOpen) {
       preload: path.join(__dirname, 'scripts/preload.js')
     }
   })
+
   view = browserViews[currViewIndex]
   view.webContents.loadURL(urlToOpen)
+  
   if (urlToOpen == homepageURL) {
     win.webContents.send('urlUpdated', '')
   }
@@ -43,6 +46,53 @@ function addAndSwitchToTab(urlToOpen) {
   view.webContents.focus()
   numTabs ++;
   handleWindowResize()
+
+  // setup contextMenu in page
+  contextMenu({
+    window: view,
+    showCopyImageAddress: true,
+    showCopyImage: true,
+    showSaveImageAs: true,
+    showSaveLinkAs: true,
+    showCopyLink: true,
+    showSearchWithGoogle: false,
+    showInspectElement: false,
+    showLearnSpelling: false,
+    prepend: (defaultActions, parameters, view) => [
+      {
+        label: 'Search for “{selection}”',
+        // Only show it when right-clicking text
+        visible: parameters.selectionText.trim().length > 0,
+        click: () => {
+          addAndSwitchToTab(`https://duckduckgo.com/search?q=${encodeURIComponent(parameters.selectionText)}`);
+        }
+      },
+      {
+        label: 'Save Page As',
+        // only when right clicking on a blank area
+        visible: parameters.mediaType == "none" && parameters.selectionText.trim().length == 0,
+        click: () => {
+          view.webContents.downloadURL(currURL)
+        }
+      },
+      {
+        label: 'Open Link in New Tab',
+        visible: parameters.linkURL,
+        click: () => {
+          addAndSwitchToTab(parameters.linkURL)
+        }
+      }
+    ],
+    append: (defaultActions, parameters, view) => [
+      {
+        label: "Inspect Element",
+        visible: parameters.frame,
+        click: () => {
+          view.webContents.openDevTools("right")
+        }
+      }
+    ]
+  });
 
       // handle shortcuts (in view)
     view.webContents.on('before-input-event', (event, input) => {
@@ -246,6 +296,7 @@ function handleWindowResize() {
   }, 0);
 }
 
+// function called upon creating main window
 const createWindow = () => {
     win = new BrowserWindow({
       width: 800,
@@ -423,6 +474,29 @@ const createWindow = () => {
     
 }
 
+// setup contextMenu in topbar
+contextMenu({
+  window: win,
+  showCopyImageAddress: true,
+  showCopyImage: true,
+  showSaveImageAs: true,
+  showSaveLinkAs: true,
+  showCopyLink: true,
+  showSearchWithGoogle: false,
+  showInspectElement: false,
+  showLearnSpelling: false,
+	prepend: (defaultActions, parameters, win) => [
+		{
+			label: 'Search for “{selection}”',
+			// Only show it when right-clicking text
+			visible: parameters.selectionText.trim().length > 0,
+			click: () => {
+				addAndSwitchToTab(`https://duckduckgo.com/${encodeURIComponent(parameters.selectionText)}`);
+			}
+		}
+	]
+});
+
 app.whenReady().then(() => {
     createWindow()
 
@@ -493,11 +567,11 @@ ipcMain.handle('removeTab', async (e, id)=> {
   if (id == currViewIndex && numTabs > 1) {
     //if deleting current tab and it's not the only tab
     view.webContents.loadURL(homepageURL)
+    win.webContents.send('tab-destroyed', id)
     //check if current tab is first tab. if so, switch to second tab. if not, switch to tab before this one.
     if (currViewIndex == 0) {
       view = browserViews[1]
-      win.webContents.send('change-active-tab', "1", "0")
-      currViewIndex += 1
+      win.webContents.send('change-active-tab', "0", "0")
     } else {
       view = browserViews[currViewIndex-1]      
       currViewIndex -= 1
@@ -508,7 +582,6 @@ ipcMain.handle('removeTab', async (e, id)=> {
     win.webContents.send('done-loading')
     browserViews[id].webContents.removeAllListeners()
     browserViews[id] = null
-    win.webContents.send('tab-destroyed', id)
     currURL = view.webContents.getURL()
     win.webContents.send('urlUpdated', view.webContents.getURL())
     browserViews.splice(id, 1)

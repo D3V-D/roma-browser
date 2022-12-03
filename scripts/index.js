@@ -23,7 +23,7 @@ searchBar.addEventListener("keypress", (e)=> {
         } else if (url.startsWith('localhost')) { 
             webpage.open('http://' + url) //handle localhost case
         } else if (url.length > 0) {
-            webpage.open('https://duckduckgo.com/' + url) // handle normal non-link searches
+            webpage.open('https://duckduckgo.com/search?q=' + url) // handle normal non-link searches
         } 
 
 
