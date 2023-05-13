@@ -13,5 +13,4 @@ Goals:
 - Add settings (theme, history, etc.)
 - Add autofill to search bar
 - ???
-- Profit! <- *A lot!*
 
