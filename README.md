@@ -1,6 +1,6 @@
 # Roma Browser 🍅
 ### Roma Browser with Caesar search engine. 🏛
-#### By Deven & Alex
+#### By Deven
 
 Goals:
 - Add features.
